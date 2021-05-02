@@ -1,10 +1,13 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using System.IO;
+using Webuno.API.Models;
+using Webuno.API.Services;
 
 namespace Webuno.API
 {
@@ -20,9 +23,13 @@ namespace Webuno.API
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllers();
+            services.AddControllers().AddNewtonsoftJson();
             services.AddSignalR();
+
             ConfigureSwagger(services);
+            ConfigureCosmosDatabase(services);
+            ConfigureDependencyInjection(services);
+            services.AddApplicationInsightsTelemetry(Configuration["APPINSIGHTS_CONNECTIONSTRING"]);
         }
 
         private void ConfigureSwagger(IServiceCollection services)
@@ -40,6 +47,11 @@ namespace Webuno.API
                 c.IncludeXmlComments(filePath);
 
             });
+        }
+        private static void ConfigureDependencyInjection(IServiceCollection services)
+        {
+            services.AddScoped<IGameRepository, GameRepository>();
+            services.AddScoped<IGameHub, GameHub>();
         }
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -74,6 +86,15 @@ namespace Webuno.API
                 endpoints.MapControllers();
                 endpoints.MapHub<GameHub>("/gamehub");
             });
+        }
+        private void ConfigureCosmosDatabase(IServiceCollection services)
+        {
+            services.AddEntityFrameworkCosmos();
+            services.AddDbContext<WebunoDbContext>(options =>options.UseCosmos(
+                Configuration["CosmosDbAccount"],
+                Configuration["CosmosDbKey"],
+                Configuration["CosmosDbDatabaseName"]
+                ));
         }
     }
 }

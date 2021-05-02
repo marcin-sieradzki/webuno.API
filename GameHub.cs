@@ -1,24 +1,40 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using System;
 using System.Threading.Tasks;
+using Webuno.API.Models;
 using Webuno.API.Services;
 
 namespace Webuno.API
 {
-    public class GameHub : Hub
+    public class GameHub : Hub, IGameHub
     {
-        public async Task StartGame(string gameKey)
+        private readonly IGameRepository _gameRepository;
+        public GameHub(IGameRepository gameRepository)
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, gameKey);
+            _gameRepository = gameRepository;
         }
-        public async Task JoinGame(string gameKey, string playerName)
+        public async Task<Game> StartGame(string hostName)
+
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, gameKey);
-            await Clients.OthersInGroup(gameKey).SendAsync("PlayerJoined", playerName);
+            try
+            {
+                var game = await _gameRepository.StartGameAsync(hostName);
+                await Groups.AddToGroupAsync(Context.ConnectionId, game.Key.ToString());
+                return game;
+            }
+            catch (Exception e)
+            {
+                throw new Exception(e.Message);
+            }
         }
-        public async Task SendMessage(string message, string playerName, string gameKey )
+        public async Task JoinGame(Guid gameKey, string playerName)
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, gameKey);
-            await Clients.Group(gameKey).SendAsync("MessageReceived", new { message, playerName, gameKey });
+            await Groups.AddToGroupAsync(Context.ConnectionId, gameKey.ToString());
+            await Clients.OthersInGroup(gameKey.ToString()).SendAsync("PlayerJoined", playerName);
+        }
+        public async Task SendMessage(string message, string playerName, Guid gameKey)
+        {
+            await Clients.Group(gameKey.ToString()).SendAsync("MessageReceived", new { message, playerName, gameKey });
         }
     }
 }
