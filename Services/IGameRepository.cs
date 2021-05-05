@@ -9,6 +9,9 @@ namespace Webuno.API.Services
     public interface IGameRepository
     {
         Task<Game> GetGameAsync(string key);
-        Task<Game> StartGameAsync(string playerName);
+        Task<Game> StartGameAsync(string playerName, string hostConnectionId);
+        Task<Game> UpdateGameAsync(Game game);
+        Task<Game> JoinGameAsync(string playerName, Game game);
+        Task<Game> PlayCardAsync(string gameKey, string playerName, string cardKey);
     }
 }

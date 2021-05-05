@@ -43,11 +43,11 @@ namespace Webuno.API.Controllers
         [HttpPost("{playerName}/{connectionId}")]
         [ProducesResponseType(typeof(Game), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<Game>> StartGameAsync([FromRoute]string playerName)
+        public async Task<ActionResult<Game>> StartGameAsync([FromRoute]string playerName, [FromRoute] string hostConnectionId)
         {
             try
             {
-                var game = await _gameRepository.StartGameAsync(playerName);
+                var game = await _gameRepository.StartGameAsync(playerName, hostConnectionId);
                 return Ok(game);
             }
             catch (Exception e)
@@ -55,5 +55,6 @@ namespace Webuno.API.Controllers
                 return StatusCode(500, e);
             }
         }
+
     }
 }

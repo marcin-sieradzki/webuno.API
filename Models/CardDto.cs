@@ -1,14 +1,11 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Webuno.API.Models
 {
-    public class Card
+    public class CardDto
     {
         public string Key { get; set; }
 
@@ -19,6 +16,6 @@ namespace Webuno.API.Models
         public string Color { get; set; }
 
         public string Effect { get; set; }
-
+        public string PlayedBy { get; set; }
     }
 }

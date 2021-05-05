@@ -51,6 +51,7 @@ namespace Webuno.API
         private static void ConfigureDependencyInjection(IServiceCollection services)
         {
             services.AddScoped<IGameRepository, GameRepository>();
+            services.AddScoped<ICardsRepository, CardsRepository>();
             services.AddScoped<IGameHub, GameHub>();
         }
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
