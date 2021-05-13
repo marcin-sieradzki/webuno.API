@@ -25,6 +25,7 @@ namespace Webuno.API
         {
             services.AddControllers().AddNewtonsoftJson();
             services.AddSignalR();
+            services.AddMemoryCache();
 
             ConfigureSwagger(services);
             ConfigureCosmosDatabase(services);

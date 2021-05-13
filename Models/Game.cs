@@ -8,9 +8,10 @@ namespace Webuno.API.Models
     public class Game
     {
         public string Key { get; set; }
-        public List<Player> Players { get; set; }
-        public List<CardDto> CardsPlayed { get; set; }
+        public List<Player> Players { get; set; } = new List<Player>();
+        public List<CardDto> CardsPlayed { get; set; } = new List<CardDto>();
         public string CurrentPlayerTurn { get; set; }
+        public bool IsStarted { get; set; }
     }
 }
  

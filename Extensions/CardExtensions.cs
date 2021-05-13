@@ -12,10 +12,35 @@ namespace Webuno.API.Extensions
         {
             return new CardDto
             {
+                Id = card.Id,
                 Color = card.Color,
                 Effect = card.Effect,
                 Key = card.Key,
                 PlayedBy = "",
+                Symbol = card.Symbol,
+                Type = card.Type
+            };
+        }
+        public static PlayerCardDto ToPlayerDto(this Card card)
+        {
+            return new PlayerCardDto
+            {
+                Id = card.Id,
+                Color = card.Color,
+                Effect = card.Effect,
+                Key = card.Key,
+                Symbol = card.Symbol,
+                Type = card.Type
+            };
+        }
+        public static PlayerCardDto ToPlayerDto(this CardDto card)
+        {
+            return new PlayerCardDto
+            {
+                Id = card.Id,
+                Color = card.Color,
+                Effect = card.Effect,
+                Key = card.Key,
                 Symbol = card.Symbol,
                 Type = card.Type
             };

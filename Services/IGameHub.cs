@@ -9,6 +9,6 @@ namespace Webuno.API.Services
         Task<Game> StartGame(string hostName);
         Task<Game> JoinGame(Guid gameKey, string playerName);
         Task<Game> DisconnectFromGame(Guid gameKey, string playerName);
-        Task SendMessage(string message, string playerName, Guid gameKey);
+        Task<object> SendMessage(string message, string playerName, Guid gameKey);
     }
 }

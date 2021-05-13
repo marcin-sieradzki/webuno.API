@@ -11,7 +11,7 @@ namespace Webuno.API.Services
         Task<Game> GetGameAsync(string key);
         Task<Game> StartGameAsync(string playerName, string hostConnectionId);
         Task<Game> UpdateGameAsync(Game game);
-        Task<Game> JoinGameAsync(string playerName, Game game);
+        Task<Game> JoinGameAsync(string playerName, Game game, string connectionId );
         Task<Game> PlayCardAsync(string gameKey, string playerName, string cardKey);
     }
 }

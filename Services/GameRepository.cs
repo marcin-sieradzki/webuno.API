@@ -49,64 +49,66 @@ namespace Webuno.API.Services
 
         private async Task<Game> BuildGame(Player host)
         {
-            var initailCard = await GetRandomCard();
-            var newGame = new Game { Key = Guid.NewGuid().ToString(), Players = new List<Player> { host }, CardsPlayed = new List<CardDto> { initailCard.ToDto() }, CurrentPlayerTurn = host.Name };
+            var initialCard = await GetRandomCard();
+            var newGame = new Game { Key = Guid.NewGuid().ToString(), Players = new List<Player> { host }, CardsPlayed = new List<CardDto> { initialCard }, CurrentPlayerTurn = host.Name, IsStarted = false };
             return newGame;
         }
 
         private async Task<Player> BuildHost(string playerName, string hostConnectionId)
         {
             var hostCards = await DrawPlayerStartingCards();
-            var host = new Player { Name = playerName, Key = Guid.NewGuid(), Cards = hostCards, IsHost = true, ConnectionId = hostConnectionId, TurnIndex = 1 };
+            var host = new Player { Name = playerName, Key = Guid.NewGuid(), PlayerCards = hostCards, IsHost = true, ConnectionId = hostConnectionId, TurnIndex = 1 };
             return host;
         }
 
-        private async Task<Card> GetRandomCard()
+        private async Task<CardDto> GetRandomCard()
         {
             var cards = await _cardsRepository.GetCardsAsync();
+            var cardDtos = cards.Select(_ => _.ToDto()).ToList();
             Random rnd = new Random();
-            var randomCard = cards[rnd.Next(cards.Count)];
+            var randomCard = cardDtos[rnd.Next(cardDtos.Count)];
             return randomCard;
         }
 
-        private async Task<Card> DrawRandomCard(string playerName, Game game)
+        private async Task<PlayerCardDto> DrawRandomCard(string playerName, Game game)
         {
             var randomCard = await GetRandomCard();
             var player = game.Players.FirstOrDefault(_ => _.Name == playerName);
-            player.Cards.Add(randomCard);
+            player.PlayerCards.Add(randomCard.ToPlayerDto());
             UpdateGameCurrentPlayerTurn(playerName, game);
             await UpdateGameAsync(game);
-            return randomCard;
+            return randomCard.ToPlayerDto();
         }
 
         private static void UpdateGameCurrentPlayerTurn(string playerName, Game game)
         {
             var playerTurnIndex = game.Players.FirstOrDefault(_ => _.Name == playerName).TurnIndex;
-            game.CurrentPlayerTurn = game.Players.FirstOrDefault(_ => _.TurnIndex == playerTurnIndex + 1).Name;
+            game.CurrentPlayerTurn = game.Players.Count > 1 ? game.Players.FirstOrDefault(_ => _.TurnIndex == playerTurnIndex + 1).Name : playerName;
         }
 
-        private async Task<List<Card>> DrawPlayerStartingCards()
+        private async Task<List<PlayerCardDto>> DrawPlayerStartingCards()
         {
             var cards = await _cardsRepository.GetCardsAsync();
             Random rnd = new Random();
-            return cards.OrderBy(x => rnd.Next()).Take(7).ToList();
+            return cards.Select(_ => _.ToPlayerDto()).OrderBy(x => rnd.Next()).Take(7).ToList();
+
         }
 
-        public async Task<Game> JoinGameAsync(string playerName, Game game)
+        public async Task<Game> JoinGameAsync(string playerName, Game game, string connectionId)
         {
-            Player newPlayer = await BuildJoiningPlayer(playerName, game);
+            Player newPlayer = await BuildJoiningPlayer(playerName, game, connectionId);
 
             game.Players.Add(newPlayer);
 
             await UpdateGameAsync(game);
 
-            return game;
+            return await GetGameAsync(game.Key);
         }
 
-        private async Task<Player> BuildJoiningPlayer(string playerName, Game game)
+        private async Task<Player> BuildJoiningPlayer(string playerName, Game game, string connectionId)
         {
-            var highestTurnIndex = game.Players.Max(_ => _.TurnIndex);
-            var newPlayer = new Player { Name = playerName, Key = Guid.NewGuid(), IsHost = false, Cards = await DrawPlayerStartingCards(), TurnIndex = highestTurnIndex + 1 };
+            var highestTurnIndex = game.Players?.Count != 0 ?  game.Players.Max(_ => _.TurnIndex) : 0;
+            var newPlayer = new Player { Name = playerName, Key = Guid.NewGuid(), IsHost = false, PlayerCards = await DrawPlayerStartingCards(), TurnIndex = highestTurnIndex + 1, ConnectionId = connectionId };
             return newPlayer;
         }
 
@@ -136,6 +138,8 @@ namespace Webuno.API.Services
             UpdateGameCurrentPlayerTurn(playerName, game);
 
             game.CardsPlayed.Add(cardDto);
+            var player = game.Players.FirstOrDefault(_ => _.Name == playerName);
+            player.PlayerCards = player.PlayerCards.Where(_ => _.Key != cardKey).ToList();
             return await UpdateGameAsync(game);
         }
 

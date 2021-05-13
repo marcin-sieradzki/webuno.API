@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Webuno.API.Models
 {
-    public class CardDto
+    public class PlayerCardDto
     {
         public string Id { get; set; }
         public string Key { get; set; }
@@ -18,6 +18,6 @@ namespace Webuno.API.Models
         public string Color { get; set; }
 
         public string Effect { get; set; }
-        public string PlayedBy { get; set; }
+
     }
 }
