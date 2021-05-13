@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,13 +11,21 @@ namespace Webuno.API
     public class GameHub : Hub, IGameHub
     {
         private readonly IGameRepository _gameRepository;
-        public GameHub(IGameRepository gameRepository)
+        private readonly WebunoDbContext _dbContext;
+        public GameHub(IGameRepository gameRepository, WebunoDbContext dbContext)
         {
             _gameRepository = gameRepository;
+            _dbContext = dbContext;
         }
         public override async Task OnDisconnectedAsync(Exception exception)
         {
-            var test = Context.ConnectionId;
+            //var connectionId = Context.ConnectionId;
+            //var gameToDisconnectFrom = await _dbContext.Games.FirstOrDefaultAsync(game => game.Players.Any(p=>p.ConnectionId == connectionId));
+            //if (gameToDisconnectFrom != null)
+            //{
+            //    var playerToDisconnect =  gameToDisconnectFrom.Players.FirstOrDefault(player => player.ConnectionId == connectionId);
+            //    gam
+            //}
             await base.OnDisconnectedAsync(exception);
         }
         public override async Task OnConnectedAsync()
@@ -45,24 +54,35 @@ namespace Webuno.API
 
                 if (IsAnyPlayerInTheGameWithSameName(playerName, game))
                 {
-                    await Groups.AddToGroupAsync(Context.ConnectionId, gameKey.ToString());
-                    Player playerReconnecting = GetPlayerByName(playerName, game);
-                    playerReconnecting.ConnectionId = Context.ConnectionId;
-                    await _gameRepository.UpdateGameAsync(game);
-                    await Clients.OthersInGroup(gameKey.ToString()).SendAsync("PlayerReconnected", playerReconnecting);
+                    await ReconnectPlayer(gameKey, playerName, game);
                     return game;
                 }
 
-                var joinedGame = await _gameRepository.JoinGameAsync(playerName, game, Context.ConnectionId);
-                Player player = GetPlayerByName(playerName, game);
-                await Groups.AddToGroupAsync(Context.ConnectionId, joinedGame.ToString());
-                await Clients.OthersInGroup(joinedGame.ToString()).SendAsync("PlayerJoined", player);
+                Game joinedGame = await JoinPlayerToGame(playerName, game);
                 return joinedGame;
             }
             catch (Exception e)
             {
                 throw new Exception(e.Message);
             }
+        }
+
+        private async Task<Game> JoinPlayerToGame(string playerName, Game game)
+        {
+            var joinedGame = await _gameRepository.JoinGameAsync(playerName, game, Context.ConnectionId);
+            Player player = GetPlayerByName(playerName, game);
+            await Groups.AddToGroupAsync(Context.ConnectionId, joinedGame.ToString());
+            await Clients.OthersInGroup(joinedGame.Key.ToString()).SendAsync("PlayerJoined", player);
+            return joinedGame;
+        }
+
+        private async Task ReconnectPlayer(Guid gameKey, string playerName, Game game)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, gameKey.ToString());
+            Player playerReconnecting = GetPlayerByName(playerName, game);
+            playerReconnecting.ConnectionId = Context.ConnectionId;
+            await _gameRepository.UpdateGameAsync(game);
+            await Clients.OthersInGroup(gameKey.ToString()).SendAsync("PlayerReconnected", playerReconnecting);
         }
 
         private static Player GetPlayerByName(string playerName, Game game)
