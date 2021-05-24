@@ -24,6 +24,7 @@ namespace Webuno.API.Models
             modelBuilder.Entity<Game>().HasPartitionKey(_ => _.Key);
             modelBuilder.Entity<Game>().OwnsMany(_ => _.Players).OwnsMany(b => b.PlayerCards);
             modelBuilder.Entity<Game>().OwnsMany(_ => _.CardsPlayed);
+            modelBuilder.Entity<Game>().OwnsMany(_ => _.Deck);
 
             modelBuilder.Entity<Card>().ToContainer("Cards");
             modelBuilder.Entity<Card>().HasKey(_ => _.Key);

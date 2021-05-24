@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -116,10 +115,37 @@ namespace Webuno.API
 
         public async Task<Game> PlayCard(string gameKey, string playerName, Card card)
         {
-            var game = await _gameRepository.PlayCardAsync(gameKey, playerName, card.Key);
-            await Clients.Group(gameKey).SendAsync("CardPlayed", new { gameKey, playerName, card });
-            return game;
+            try
+            {
+                var game = await _gameRepository.PlayCardAsync(gameKey, playerName, card);
+                if (!string.IsNullOrEmpty(game.WinnerId))
+                {
+                    await Clients.Group(gameKey).SendAsync("CardPlayed", new { gameKey, playerName, card });
+                    await Clients.Group(gameKey).SendAsync("GameWon", game);
+                    return game;
+                }
+                await Clients.Group(gameKey).SendAsync("CardPlayed", new { gameKey, playerName, card });
+                return game;
+            }
+            catch (Exception e)
+            {
+                throw new Exception(e.Message);
+            }
         }
 
+        public async Task<Game> DrawRandomCard(string playerName, Game game)
+        {
+            try
+            {
+                var card = await _gameRepository.DrawRandomCard(playerName, game);
+                var gameKey = game.Key;
+                await Clients.Group(game.Key).SendAsync("CardDrew", new { gameKey, playerName, card });
+                return game;
+            }
+            catch (Exception e)
+            {
+                throw new Exception(e.Message);
+            }
+        }
     }
 }

@@ -19,5 +19,6 @@ namespace Webuno.API.Models
 
         public string Effect { get; set; }
         public string PlayedBy { get; set; }
+        public DateTime PlayedAt { get; set; }
     }
 }

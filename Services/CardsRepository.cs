@@ -14,7 +14,7 @@ namespace Webuno.API.Services
         private readonly IMemoryCache _cache;
         private const string CardsType = "card";
         private const string CardsCacheKey = "card";
-        private static readonly TimeSpan DefaultCacheSlidingExpiration = TimeSpan.FromMinutes(60);
+        private static readonly TimeSpan DefaultCacheSlidingExpiration = TimeSpan.FromDays(365);
         public CardsRepository(WebunoDbContext dbContext, IMemoryCache cache)
         {
             _dbContext = dbContext;

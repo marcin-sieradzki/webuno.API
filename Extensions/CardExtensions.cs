@@ -42,6 +42,20 @@ namespace Webuno.API.Extensions
                 Effect = card.Effect,
                 Key = card.Key,
                 Symbol = card.Symbol,
+                Type = card.Type,
+                PlayedAt = card.PlayedAt
+            };
+        }
+
+        public static Card ToCard(this CardDto card)
+        {
+            return new Card
+            {
+                Id = card.Id,
+                Color = card.Color,
+                Effect = card.Effect,
+                Key = card.Key,
+                Symbol = card.Symbol,
                 Type = card.Type
             };
         }

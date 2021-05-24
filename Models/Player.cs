@@ -17,6 +17,7 @@ namespace Webuno.API.Models
         public bool IsHost { get; set; }
         public string ConnectionId { get; set; }
         public int TurnIndex { get; set; }
+        public int SitIndex { get; set; }
 
         public List<PlayerCardDto> PlayerCards { get; set; }
     }
