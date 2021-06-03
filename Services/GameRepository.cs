@@ -63,6 +63,7 @@ namespace Webuno.API.Services
 
         private CardDto DrawRandomCardFromDeck(List<CardDto> deck)
         {
+
             Random rnd = new Random();
             var randomCard = deck[rnd.Next(deck.Count)];
             deck.Remove(randomCard);
@@ -71,6 +72,10 @@ namespace Webuno.API.Services
 
         public async Task<PlayerCardDto> DrawRandomCard(string playerName, Game game)
         {
+            if (game.Deck.Count == 0)
+            {
+                MovePlayedCardsBackToDeck(game);
+            }
             var randomCard = DrawRandomCardFromDeck(game.Deck).ToPlayerDto();
             var player = game.Players.FirstOrDefault(_ => _.Name == playerName);
             player.PlayerCards.Add(randomCard);
@@ -80,6 +85,10 @@ namespace Webuno.API.Services
         }
         public async Task<List<PlayerCardDto>> DrawRandomCards(string playerName, int amount, Game game)
         {
+            if (game.Deck.Count == 0)
+            {
+                MovePlayedCardsBackToDeck(game);
+            }
             var cards = game.Deck;
             var player = game.Players.FirstOrDefault(_ => _.Name == playerName);
             Random rnd = new Random();
@@ -152,11 +161,18 @@ namespace Webuno.API.Services
 
                 CardDto cardDto = BuildCardDto(playerName, card);
 
-
                 game.CardsPlayed.Add(cardDto);
                 game.Deck.Remove(cardDto);
+
+                if(game.Deck.Count == 0)
+                {
+                    MovePlayedCardsBackToDeck(game);
+                }
+
                 var player = game.Players.FirstOrDefault(_ => _.Name == playerName);
-                player.PlayerCards = player.PlayerCards.Where(_ => _.Key != card.Key).ToList();
+                UpdatePlayerCards(player, card, game);
+
+                await ApplyCardEffect(game, cardDto, player);
 
                 if (game.Players.Any(player => player.PlayerCards.Count < 1))
                 {
@@ -164,7 +180,6 @@ namespace Webuno.API.Services
                     return await UpdateGameAsync(game);
                 }
 
-                UpdateGameCurrentPlayerTurn(playerName, game);
                 await _dbContext.SaveChangesAsync();
                 return await GetGameAsync(game.Key);
             }
@@ -172,6 +187,86 @@ namespace Webuno.API.Services
             {
                 throw new Exception(e.Message);
             }
+        }
+
+        private void MovePlayedCardsBackToDeck(Game game)
+        {
+            var latestCard = game.CardsPlayed.Last();
+            game.CardsPlayed.Remove(latestCard);
+
+            var shuffledCards = ShuffleCards(game.CardsPlayed);
+            shuffledCards.ForEach(card => { 
+                card.PlayedBy = "";
+            });
+           
+            game.Deck.AddRange(shuffledCards);
+            game.CardsPlayed.Clear();
+            game.CardsPlayed.Add(latestCard);
+        }
+
+        private List<CardDto> ShuffleCards(List<CardDto> cards)
+        {
+            Random rng = new Random();
+            return cards.OrderBy(a => rng.Next()).ToList();
+        }
+
+        private async Task ApplyCardEffect(Game game, CardDto cardDto, Player player)
+        {
+            switch (cardDto.Symbol)
+            {
+                case "+4":
+                    var nextPlayer = GetNextPlayer(player, game);
+                    nextPlayer.PlayerCards.AddRange(await DrawRandomCards(nextPlayer.Name, 4, game));
+                    UpdateGameCurrentPlayerTurn(player.Name, game);
+                    break;
+                case "+2":
+                    var nextPlayer2 = GetNextPlayer(player, game);
+                    nextPlayer2.PlayerCards.AddRange(await DrawRandomCards(nextPlayer2.Name, 2, game));
+                    UpdateGameCurrentPlayerTurn(player.Name, game);
+                    break;
+                case "reverse":
+                    //var previousPlayer = GetPreviousPlayer(player, game);
+                    //SetPlayerTurn(player, game);
+                    UpdateGameCurrentPlayerTurn(player.Name, game);
+                    break;
+                case "stop":
+                    var nextPlayer3 = GetNextPlayer(player, game);
+                    var secondNextPlayer = GetNextPlayer(nextPlayer3, game);
+                    SetPlayerTurn(secondNextPlayer, game);
+                    break;
+                default:
+                    UpdateGameCurrentPlayerTurn(player.Name, game);
+                    break;
+            }
+        }
+
+        private Player GetNextPlayer(Player player, Game game)
+        {
+            if (game.Players.Any(p => p.TurnIndex == player.TurnIndex + 1))
+            {
+                return game.Players.FirstOrDefault(_ => _.TurnIndex == player.TurnIndex + 1);
+            }
+            return game.Players.FirstOrDefault(_ => _.TurnIndex == 1);
+        }
+
+        private Player GetPreviousPlayer(Player player, Game game)
+        {
+            if (game.Players.Any(p => p.TurnIndex == player.TurnIndex - 1))
+            {
+                return game.Players.FirstOrDefault(_ => _.TurnIndex == player.TurnIndex - 1);
+            }
+            return game.Players.FirstOrDefault(_ => _.TurnIndex == 1);
+        }
+        private void SetPlayerTurn(Player player, Game game)
+        {
+            game.CurrentPlayerTurn = player.Name;
+        }
+
+
+        private static void UpdatePlayerCards(Player player, Card card, Game game)
+        {
+      
+            player.PlayerCards = player.PlayerCards.Where(_ => _.Key != card.Key).ToList();
         }
 
         private static void CheckIFCardCanBePlayed(Card card, Game game)

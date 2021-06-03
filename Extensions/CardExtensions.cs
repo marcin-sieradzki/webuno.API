@@ -59,5 +59,10 @@ namespace Webuno.API.Extensions
                 Type = card.Type
             };
         }
+        public static bool HasSpecialEffect(this CardDto card)
+        {
+            var specialCardSymbols = new List<string>() { "+2", "+4", "reverse", "stop" };
+            return specialCardSymbols.Contains(card.Symbol);
+        }
     }
 }
