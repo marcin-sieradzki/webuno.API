@@ -29,7 +29,7 @@ namespace Webuno.API.Services
             try
             {
                 Game newGame = await BuildGame();
-                Player host = await BuildHost(playerName, hostConnectionId, newGame);
+                Player host = BuildHost(playerName, hostConnectionId, newGame);
                 newGame.Players.Add(host);
                 newGame.CurrentPlayerTurn = host.Name;
 
@@ -48,13 +48,19 @@ namespace Webuno.API.Services
         {
             var deck = await _cardsRepository.GetCardsAsync();
             var deckDtos = deck.Select(_=>_.ToDto()).ToList();
-            var newGame = new Game { Key = Guid.NewGuid().ToString(), CardsPlayed = new List<CardDto>(), IsStarted = false, Deck = deckDtos };
+            var newGame = new Game { Key = Guid.NewGuid().ToString(), CardsPlayed = new List<CardDto>(), Deck = deckDtos };
             var initialCard = DrawRandomCardFromDeck(newGame.Deck);
+
+            if (initialCard.HasSpecialEffect())
+            {
+                initialCard = DrawRandomCardFromDeck(newGame.Deck);
+            }
+
             newGame.CardsPlayed.Add(initialCard);
             return newGame;
         }
 
-        private async Task<Player> BuildHost(string playerName, string hostConnectionId, Game game)
+        private Player BuildHost(string playerName, string hostConnectionId, Game game)
         {
             var hostCards = DrawPlayerStartingCards(game.Deck);
             var host = new Player { Name = playerName, Key = Guid.NewGuid(), PlayerCards = hostCards, IsHost = true, ConnectionId = hostConnectionId, TurnIndex = 1, SitIndex = 1 };
@@ -103,9 +109,22 @@ namespace Webuno.API.Services
             cardsToRemove.ForEach(card => deck.Remove(card));
         }
 
-        private static void UpdateGameCurrentPlayerTurn(string playerName, Game game)
+        private static void UpdateGameCurrentPlayerTurn(string currentPlayerName, Game game)
         {
-            var playerTurnIndex = game.Players.FirstOrDefault(_ => _.Name == playerName).TurnIndex;
+            var playerTurnIndex = game.Players.FirstOrDefault(_ => _.Name == currentPlayerName).TurnIndex;
+
+            if (game.AreTurnsReversed)
+            {
+                if (game.Players.Any(p => p.TurnIndex == playerTurnIndex - 1))
+                {
+                    game.CurrentPlayerTurn = game.Players.FirstOrDefault(_ => _.TurnIndex == playerTurnIndex - 1).Name;
+                    return;
+                }
+                game.CurrentPlayerTurn = game.Players.FirstOrDefault(_ => _.TurnIndex == 4).Name;
+                return;
+            }
+
+
             if (game.Players.Any(p => p.TurnIndex == playerTurnIndex + 1))
             {
                 game.CurrentPlayerTurn = game.Players.FirstOrDefault(_ => _.TurnIndex == playerTurnIndex + 1).Name;
@@ -124,7 +143,7 @@ namespace Webuno.API.Services
 
         public async Task<Game> JoinGameAsync(string playerName, Game game, string connectionId)
         {
-            Player newPlayer = await BuildJoiningPlayer(playerName, game, connectionId);
+            Player newPlayer = BuildJoiningPlayer(playerName, game, connectionId);
 
             game.Players.Add(newPlayer);
 
@@ -133,7 +152,7 @@ namespace Webuno.API.Services
             return await GetGameAsync(game.Key);
         }
 
-        private async Task<Player> BuildJoiningPlayer(string playerName, Game game, string connectionId)
+        private Player BuildJoiningPlayer(string playerName, Game game, string connectionId)
         {
             var highestTurnIndex = game.Players?.Count != 0 ? game.Players.Max(_ => _.TurnIndex) : 0;
             var highestSitIndex = game.Players?.Count != 0 ? game.Players.Max(_ => _.SitIndex) : 0;
@@ -170,7 +189,7 @@ namespace Webuno.API.Services
                 }
 
                 var player = game.Players.FirstOrDefault(_ => _.Name == playerName);
-                UpdatePlayerCards(player, card, game);
+                UpdatePlayerCards(player, card);
 
                 await ApplyCardEffect(game, cardDto, player);
 
@@ -225,8 +244,14 @@ namespace Webuno.API.Services
                     UpdateGameCurrentPlayerTurn(player.Name, game);
                     break;
                 case "reverse":
-                    //var previousPlayer = GetPreviousPlayer(player, game);
-                    //SetPlayerTurn(player, game);
+                    if (game.AreTurnsReversed == true)
+                    {
+                        game.AreTurnsReversed = false;
+                    }
+                    else
+                    {
+                        game.AreTurnsReversed = true;
+                    }
                     UpdateGameCurrentPlayerTurn(player.Name, game);
                     break;
                 case "stop":
@@ -263,7 +288,7 @@ namespace Webuno.API.Services
         }
 
 
-        private static void UpdatePlayerCards(Player player, Card card, Game game)
+        private static void UpdatePlayerCards(Player player, Card card)
         {
       
             player.PlayerCards = player.PlayerCards.Where(_ => _.Key != card.Key).ToList();

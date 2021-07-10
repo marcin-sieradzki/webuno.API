@@ -10,22 +10,10 @@ namespace Webuno.API
     public class GameHub : Hub, IGameHub
     {
         private readonly IGameRepository _gameRepository;
-        private readonly WebunoDbContext _dbContext;
+
         public GameHub(IGameRepository gameRepository, WebunoDbContext dbContext)
         {
             _gameRepository = gameRepository;
-            _dbContext = dbContext;
-        }
-        public override async Task OnDisconnectedAsync(Exception exception)
-        {
-            //var connectionId = Context.ConnectionId;
-            //var gameToDisconnectFrom = await _dbContext.Games.FirstOrDefaultAsync(game => game.Players.Any(p=>p.ConnectionId == connectionId));
-            //if (gameToDisconnectFrom != null)
-            //{
-            //    var playerToDisconnect =  gameToDisconnectFrom.Players.FirstOrDefault(player => player.ConnectionId == connectionId);
-            //    gam
-            //}
-            await base.OnDisconnectedAsync(exception);
         }
         public override async Task OnConnectedAsync()
         {
@@ -120,11 +108,10 @@ namespace Webuno.API
                 var game = await _gameRepository.PlayCardAsync(gameKey, playerName, card);
                 if (!string.IsNullOrEmpty(game.WinnerId))
                 {
-                    await Clients.Group(gameKey).SendAsync("CardPlayed", new { gameKey, playerName, card });
-                    await Clients.Group(gameKey).SendAsync("GameWon", game);
+                    await Clients.Group(gameKey).SendAsync("GameWon", game.WinnerId);
                     return game;
                 }
-                await Clients.Group(gameKey).SendAsync("CardPlayed", new { gameKey, playerName, card });
+                await Clients.Group(gameKey).SendAsync("CardPlayed", new { playerName, card });
                 return game;
             }
             catch (Exception e)

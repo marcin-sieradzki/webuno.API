@@ -65,6 +65,7 @@ namespace Webuno.API
             app.UseCors(builder =>
                 builder
                     .WithOrigins("http://localhost:3000")
+                    .WithOrigins("http://localhost:3001")
                     .AllowAnyMethod()
                     .AllowAnyHeader()
                     .AllowCredentials()

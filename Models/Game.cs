@@ -12,8 +12,8 @@ namespace Webuno.API.Models
         public List<CardDto> CardsPlayed { get; set; } = new List<CardDto>();
         public List<CardDto> Deck { get; set; } = new List<CardDto>();
         public string CurrentPlayerTurn { get; set; }
-        public bool IsStarted { get; set; }
         public string WinnerId { get; set; }
+        public bool AreTurnsReversed { get; set; }
     }
 }
  
