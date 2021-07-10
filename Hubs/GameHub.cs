@@ -58,8 +58,8 @@ namespace Webuno.API
         {
             var joinedGame = await _gameRepository.JoinGameAsync(playerName, game, Context.ConnectionId);
             Player player = GetPlayerByName(playerName, game);
-            await Groups.AddToGroupAsync(Context.ConnectionId, joinedGame.ToString());
-            await Clients.OthersInGroup(joinedGame.Key.ToString()).SendAsync("PlayerJoined", player);
+            await Groups.AddToGroupAsync(Context.ConnectionId, joinedGame.Key);
+            await Clients.OthersInGroup(joinedGame.Key).SendAsync("PlayerJoined", player);
             return joinedGame;
         }
 

@@ -120,7 +120,7 @@ namespace Webuno.API.Services
                     game.CurrentPlayerTurn = game.Players.FirstOrDefault(_ => _.TurnIndex == playerTurnIndex - 1).Name;
                     return;
                 }
-                game.CurrentPlayerTurn = game.Players.FirstOrDefault(_ => _.TurnIndex == 4).Name;
+                game.CurrentPlayerTurn = game.Players.FirstOrDefault(_ => _.TurnIndex == game.Players.Max(_=>_.TurnIndex)).Name;
                 return;
             }
 
@@ -130,7 +130,7 @@ namespace Webuno.API.Services
                 game.CurrentPlayerTurn = game.Players.FirstOrDefault(_ => _.TurnIndex == playerTurnIndex + 1).Name;
                 return;
             }
-            game.CurrentPlayerTurn = game.Players.FirstOrDefault(_ => _.TurnIndex == 1).Name;
+            game.CurrentPlayerTurn = game.Players.FirstOrDefault(_ => _.TurnIndex == game.Players.Min(_ => _.TurnIndex)).Name;
         }
 
         private List<PlayerCardDto> DrawPlayerStartingCards(List<CardDto> deck)
